@@ -9,8 +9,6 @@ The code probably runs as well on newer hardware that is more common nowadays (B
 
 I'd like to thank:
 
-CSS Toggle switch created by (Maha Alzahrani)[https://github.com/mahazz/]
+CSS Toggle switch created by [Maha Alzahrani](https://github.com/mahazz/)
 
-Rui and Sara for the (Arduino Ethernet Web Server with Relay tutorial)[https://randomnerdtutorials.com/arduino-ethernet-web-server-with-relay/]
-
-
+Rui and Sara for the [Arduino Ethernet Web Server with Relay tutorial](https://randomnerdtutorials.com/arduino-ethernet-web-server-with-relay/)

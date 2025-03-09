@@ -36,27 +36,33 @@ byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
 
-// Client variables 
-String readString;
-
-const int redLed = A15;     // pin the piezo is attached to
-const int greenLed = 21;    // pin the switch is attached to
-const int yellowLed = 20;   // pin the yellow LED is attached to
 const int ethResetPin = 8;  // pin the Ethernet shield reset pin is attached to
 
-String relay1State = "Off";
-
-// Define the pins used by the relais
-const int relais[2][4] = {
+// Define the pins used by the relay
+const int relay[2][4] = {
   {A15, A14, A13, A12},
   {21, 20, 19, 18}
 };
+
+// State of the Relais after power-on
+#define NO 0  // Normaly open = initially off
+#define NC 1  // Normaly closed = initially on
+
+int relayState[2][4] = {
+  {NC, NC, NC, NC},
+  {NC, NC, NC, NC}
+};
+
+
+// Client variables 
+String readString;
+String htmlString;
 
 void setup() {
   // make the LED pins outputs
   for(uint8_t i=0;i<2;i++){
     for(uint8_t j=0;j<4;j++){
-      pinMode(relais[i][j], OUTPUT);
+      pinMode(relay[i][j], OUTPUT);
     }
   }
 
@@ -90,55 +96,67 @@ void setup() {
   Serial.print("Server is at ");
   Serial.println(Ethernet.localIP());
 
-  // turn the green LED on
-  digitalWrite(relais[1][0], HIGH);
-  digitalWrite(relais[0][2], HIGH);
-  digitalWrite(relais[0][0], HIGH);
 }
 
 // Display dashboard page with on/off button for relay
-// It also print Temperature in C and F
-void dashboardPage(EthernetClient &Client) {
-  Client.println(F("<!DOCTYPE HTML><html><head>"));
-  Client.println(F("<meta name='apple-mobile-web-app-capable' content='yes' />"));
-  Client.println(F("<meta name='apple-mobile-web-app-status-bar-style' content='black-translucent' />"));
-//  Client.println(F("<link rel='stylesheet' type='text/css' href='https://randomnerdtutorials.com/ethernetcss.css' />"));
-  Client.println(F("<title>Random Nerd Tutorials Project</title>"));
-  Client.println(F("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head><body>"));  
-  Client.println(F("<H1>Random Nerd Tutorials Project</H1><hr /><br />"));  
-  Client.println(F("<H2>Arduino with Ethernet Shield</H2>"));                                                           
-  Client.println(F("<h3><a href=\"/\">Refresh</a></h3>"));
-  // Generates buttons to control the relay
-  Client.println("<h4>Relay 1 - State: " + relay1State + "</h4>");
-  // If relay is off, it shows the button to turn the output on          
-  if(relay1State == "Off"){
-    Client.println(F("<a href=\"/relay1on\"><button>ON</button></a>"));
-  }
-  // If relay is on, it shows the button to turn the output off         
-  else if(relay1State == "On"){
-    Client.println(F("<a href=\"/relay1off\"><button>OFF</button></a>"));                    
-  }
-  Client.println(F("<h3>DIY buttons<br />"));
-  Client.println(F("<a href=/?on2 >ON</a>")); 
-  Client.println(F("<a href=/?off3 >OFF</a>")); 
-  Client.println(F("&nbsp;<a href=/?off357 >ALL OFF</a>")); 
-  
-  Client.println(F("<h3>Mousedown buttons<br />"));
-  Client.println(F("<input type=button value=ON onmousedown=location.href='/?on4;'>")); 
-  Client.println(F("<input type=button value=OFF onmousedown=location.href='/?off5;'>"));        
-  Client.println(F("&nbsp;<input type=button value='ALL OFF' onmousedown=location.href='/?off3579;'>"));        
-           
-  Client.println(F("<h3>Mousedown radio buttons<br />"));
-  Client.println(F("<input type=radio onmousedown=location.href='/?on6;'>ON</>")); 
-  Client.println(F("<input type=radio onmousedown=location.href='/?off7;'>OFF</>")); 
-  Client.println(F("&nbsp;<input type=radio onmousedown=location.href='/?off3579;'>ALL OFF</>"));    
-  
-  Client.println(F("<h3>Custom buttons<br />"));
-  Client.print(F("<input type=submit value=ON style=width:100px;height:45px onClick=location.href='/?on8;'>"));
-  Client.print(F("<input type=submit value=OFF style=width:100px;height:45px onClick=location.href='/?off9;'>"));
-  Client.print(F("&nbsp;<input type=submit value='ALL OFF' style=width:100px;height:45px onClick=location.href='/?off3579;'>"));
 
-  Client.println(F("</body></html>")); 
+void dashboardPage(EthernetClient &Client) {
+  // HTML header
+  Client.println(F("<!DOCTYPE HTML><html><head>"));
+  Client.println(F("<meta name='apple-mobile-web-app-capable' content='yes' /> <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent' /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"));
+  Client.println(F("<title>Ethernet Power Switch</title>"));
+  // CSS styles
+  Client.println(F("<style>html, body {height: 100%; font-family: -apple-system, system-ui, system-ui, \"Segoe UI\", Roboto, \"Helvetica Neue\", \"Fira Sans\", Ubuntu, Oxygen, \"Oxygen Sans\", Cantarell, \"Droid Sans\", \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Lucida Grande\", Helvetica, Arial, sans-serif; font-size: 14px;}"));
+  Client.println(F(".bt { align-items: center; border: 0; border-radius: 100px; box-sizing: border-box; color: #ffffff; cursor: pointer; display: inline-flex;font-size: 14px; font-weight: 600; justify-content: center; line-height: 20px; max-width: 480px; min-height: 30px; min-width: 0px; overflow: hidden;"));
+  Client.println(F("padding: 0px; padding-left: 20px; padding-right: 20px; text-align: center; touch-action: manipulation;transition: background-color 0.167s cubic-bezier(0.4, 0, 0.2, 1) 0s, box-shadow 0.167s cubic-bezier(0.4, 0, 0.2, 1) 0s, color 0.167s cubic-bezier(0.4, 0, 0.2, 1) 0s;user-select: none; -webkit-user-select: none; vertical-align: middle;}"));
+  Client.println(F(".bt{background-color: #ccc;} .bt:hover, .bt:focus { background-color: #aaa; color: #ffffff;}"));
+  Client.println(F(".bt.tg{background-color: #0A66C2;} .bt.tg:hover, .bt.tg:focus { background-color: #16437E; color: #ffffff;} .bt.tg:active { background: #09223b; color: rgb(255, 255, 255, .7);} .bt.tg:disabled { cursor: not-allowed; background: rgba(0, 0, 0, .08); color: rgba(0, 0, 0, .3);}"));
+  Client.println(F(".sl {--s: 25px; height: var(--s); aspect-ratio: 2.5; width: auto; border-radius: var(--s); padding: calc(var(--s)/10); margin: calc(var(--s)/4); cursor: pointer; background: radial-gradient(farthest-side,#fff 96%,#0000) var(--_p,0%)/var(--s) content-box no-repeat, var(--_c,#ccc); box-sizing: content-box; appearance: none;"));
+  Client.println(F("-moz-appearance: none; -webkit-appearance: none; vertical-align: middle; transform-origin: calc(3*var(--s)/5) 50%; transition: transform cubic-bezier(0,300,1,300) .5s,background .3s .1s ease-in;} .sl:checked {--_c: #85ff7a;--_p: 100%;}"));
+  Client.println(F(".st {width: 20px; display: inline-block;}</style></head><body>"));
+  // HTML body
+  Client.println(F("<H1>Ethernet Power Switch</H1><hr /><input type=button class=bt value=Refresh onmousedown=\"location.href='/'\">"));
+  for(uint8_t i=0;i<2;i++){
+    // Generates the section for a phase
+    htmlString = F("<hr /><H2>Phase ");
+    htmlString += i + 1;
+    Client.println(htmlString + "</H2>");
+    
+    for(uint8_t j=0;j<4;j++){
+      // Generates buttons to control the relay
+      Client.println(F(""));
+      htmlString = F("<h3>Relay ");
+      htmlString += j + 1;
+      htmlString += " (";
+      htmlString += "Text";
+      htmlString += ")";
+      Client.println(htmlString);
+      Client.println(F("</h3><span class=st>"));
+      if(1 == relayState[i][j]) {
+        Client.println("On");
+      } else {
+        Client.println("Off");
+      }
+      Client.println(F("</span><input type=\"checkbox\" "));
+      if(1 == relayState[i][j]) {
+        Client.println("checked");
+      }
+      Client.println(F(" class=sl "));
+      htmlString = F("onmousedown=\"location.href='/relay");
+      htmlString += i;
+      htmlString += j;
+      htmlString += F("?off'\">");
+      Client.println(htmlString);
+      Client.println(F("<input type=button class=\"bt tg\" value=TOGGLE "));
+      htmlString = F("onmousedown=\"location.href='/relay");
+      htmlString += i;
+      htmlString += j;
+      htmlString += F("?toggle'\"><br />");
+      Client.println(htmlString);
+    }
+  }
+
+  Client.println(F("<hr /><a href=https://github.com/nuess0r/power-switch >Code on Github</a></body></html>")); 
 }
 
 void loop() {
@@ -171,55 +189,55 @@ void loop() {
         }
         if (c == '\n') {
           if(readString.indexOf("GET /relay1off") > 0){
-            digitalWrite(relais[1][0], LOW);
-            relay1State = "Off";
+            digitalWrite(relay[1][0], LOW);
+            relayState[1][0] = 0;
           }
           if(readString.indexOf("GET /relay1on") > 0){
-            digitalWrite(relais[1][0], HIGH);
-            relay1State = "On";
+            digitalWrite(relay[1][0], HIGH);
+            relayState[1][0] = 1;
           }
 
           if(readString.indexOf('2') >0)//checks for 2
           {
-            digitalWrite(relais[1][1], HIGH);    // set pin 5 high
+            digitalWrite(relay[1][1], HIGH);    // set pin 5 high
             Serial.println("Led 5 On");
           }
           if(readString.indexOf('3') >0)//checks for 3
           {
-            digitalWrite(relais[1][1], LOW);    // set pin 5 low
+            digitalWrite(relay[1][1], LOW);    // set pin 5 low
             Serial.println("Led 5 Off");
           }
           
           if(readString.indexOf('4') >0)//checks for 4
           {
-            digitalWrite(relais[1][2], HIGH);    // set pin 6 high
+            digitalWrite(relay[1][2], HIGH);    // set pin 6 high
             Serial.println("Led 6 On");
           }
           if(readString.indexOf('5') >0)//checks for 5
           {
-            digitalWrite(relais[1][2], LOW);    // set pin 6 low
+            digitalWrite(relay[1][2], LOW);    // set pin 6 low
             Serial.println("Led 6 Off");
           }
           
            if(readString.indexOf('6') >0)//checks for 6
           {
-            digitalWrite(relais[0][0], HIGH);    // set pin 7 high
+            digitalWrite(relay[0][0], HIGH);    // set pin 7 high
             Serial.println("Led 7 On");
           }
           if(readString.indexOf('7') >0)//checks for 7
           {
-            digitalWrite(relais[0][0], LOW);    // set pin 7 low
+            digitalWrite(relay[0][0], LOW);    // set pin 7 low
             Serial.println("Led 7 Off");
           }     
           
             if(readString.indexOf('8') >0)//checks for 8
           {
-            digitalWrite(relais[0][1], HIGH);    // set pin 8 high
+            digitalWrite(relay[0][1], HIGH);    // set pin 8 high
             Serial.println("Led 8 On");
           }
           if(readString.indexOf('9') >0)//checks for 9
           {
-            digitalWrite(relais[0][1], LOW);    // set pin 8 low
+            digitalWrite(relay[0][1], LOW);    // set pin 8 low
             Serial.println("Led 8 Off");
           }  
           
