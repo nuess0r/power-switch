@@ -1,0 +1,68 @@
+<!DOCTYPE HTML><html><head>
+<meta name='apple-mobile-web-app-capable' content='yes' />
+<meta name='apple-mobile-web-app-status-bar-style' content='black-translucent' />
+<title>Ethernet Power Switch</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"><style>
+html, body {height: 100%;
+    font-family: -apple-system, system-ui, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Fira Sans", Ubuntu, Oxygen, "Oxygen Sans", Cantarell, "Droid Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Lucida Grande", Helvetica, Arial, sans-serif; font-size: 14px;}
+.bt { align-items: center; border: 0; border-radius: 100px; box-sizing: border-box; color: #ffffff; cursor: pointer; display: inline-flex;
+font-size: 14px; font-weight: 600; justify-content: center; line-height: 20px; max-width: 480px; min-height: 30px; min-width: 0px; overflow: hidden;
+padding: 0px; padding-left: 20px; padding-right: 20px; text-align: center; touch-action: manipulation;
+transition: background-color 0.167s cubic-bezier(0.4, 0, 0.2, 1) 0s, box-shadow 0.167s cubic-bezier(0.4, 0, 0.2, 1) 0s, color 0.167s cubic-bezier(0.4, 0, 0.2, 1) 0s;
+user-select: none; -webkit-user-select: none; vertical-align: middle;}
+.bt{background-color: #ccc;}
+.bt:hover, .bt:focus { background-color: #aaa; color: #ffffff;}
+
+.bt.tg{background-color: #0A66C2;}
+.bt.tg:hover, .bt.tg:focus { background-color: #16437E; color: #ffffff;}
+.bt.tg:active { background: #09223b; color: rgb(255, 255, 255, .7);}
+.bt.tg:disabled { cursor: not-allowed; background: rgba(0, 0, 0, .08); color: rgba(0, 0, 0, .3);}
+
+.sl {--s: 25px; height: var(--s); aspect-ratio: 2.5; width: auto; border-radius: var(--s); padding: calc(var(--s)/10); margin: calc(var(--s)/4); cursor: pointer;
+  background: radial-gradient(farthest-side,#fff 96%,#0000) var(--_p,0%)/var(--s) content-box no-repeat, var(--_c,#ccc);
+  box-sizing: content-box; appearance: none; -moz-appearance: none; -webkit-appearance: none; vertical-align: middle;
+  transform-origin: calc(3*var(--s)/5) 50%; transition: transform cubic-bezier(0,300,1,300) .5s,background .3s .1s ease-in;}
+.sl:checked {--_c: #85ff7a;--_p: 100%;}
+
+.st {width: 20px; display: inline-block;}
+</style></head><body>
+<H1>Ethernet Power Switch</H1><hr />
+<input type=button class=bt value=Refresh onmousedown=location.href='/'>
+<hr /><H2>Phase 1</H2><h3>Relay 1</h3>
+<span class=st>Off</span>
+<input type="checkbox" class=sl onmousedown=location.href='/relay00?on'>
+<input type=button class="bt tg" value=TOGGLE onmousedown=location.href='/relay00?toggle'><br />
+<h3>Relay 2</h3>
+<span class=st>On</span>
+<input type="checkbox" checked class=sl onmousedown=location.href='/relay00?on'>
+<input type=button class="bt tg" value=TOGGLE onmousedown=location.href='/relay01?toggle'><br />
+<h3>Relay 3</h3>
+<p>On</p>
+<input type="checkbox" class=sl onmousedown=location.href='/relay02?on'>On
+<input type=button class=bt value=ON onmousedown=location.href='/relay02?on'>
+<input type=button class=bt value=OFF onmousedown=location.href='/relay02?off'>
+<input type=button class="bt tg" value=TOGGLE onmousedown=location.href='/relay02?toggle'><br />
+<h3>Relay 4</h3>
+<p>Off
+<input type="checkbox" checked class=sl onmousedown=location.href='/relay03?off'>Off
+<input type=button class=bt value=ON onmousedown=location.href='/relay03?on'>
+<input type=button class=bt value=OFF onmousedown=location.href='/relay03?off'></p>
+<input type=button class="bt tg" value=TOGGLE onmousedown=location.href='/relay03?toggle'><br />
+<hr /><H2>Phase 2</H2><h3>Relay 1</h3>
+<input type=button class=bt value=ON onmousedown=location.href='/relay10?on'>
+<input type=button class=bt value=OFF onmousedown=location.href='/relay10?off'>
+<input type=button class="bt tg" value=TOGGLE onmousedown=location.href='/relay10?toggle'><br />
+<h3>Relay 2</h3>
+<input type=button class=bt value=ON onmousedown=location.href='/relay11?on'>
+<input type=button class=bt value=OFF onmousedown=location.href='/relay11?off'>
+<input type=button class="bt tg" value=TOGGLE onmousedown=location.href='/relay11?toggle'><br />
+<h3>Relay 3</h3>
+<input type=button class=bt value=ON onmousedown=location.href='/relay12?on'>
+<input type=button class=bt value=OFF onmousedown=location.href='/relay12?off'>
+<input type=button class="bt tg" value=TOGGLE onmousedown=location.href='/relay12?toggle'><br />
+<h3>Relay 3</h3>
+<input type=button class=bt value=ON onmousedown=location.href='/relay13?on'>
+<input type=button class=bt value=OFF onmousedown=location.href='/relay13?off'>
+<input type=button class="bt tg" value=TOGGLE onmousedown=location.href='/relay13?toggle'><br />
+<hr /><a href=https://github.com/nuess0r/power-switch >Code on Github</a></body></html>
+
