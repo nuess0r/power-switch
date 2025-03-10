@@ -1,7 +1,7 @@
 /* 
   Power switch with Ethernet interface
 
-  https://github.com/nuess0r/
+  https://github.com/nuess0r/power-switch
 
   Additional contributions from:
   - 
@@ -17,7 +17,7 @@
     Pins A12        Relais right 3
 
 */
-#define VERSION "2024-08-24"
+#define VERSION "2025-03-10"
 
 // Required libs
 #include <stdint.h> // uint8_t type variables
@@ -36,10 +36,10 @@ byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
 
-const int ethResetPin = 8;  // pin the Ethernet shield reset pin is attached to
+const uint8_t ethResetPin = 8;  // pin the Ethernet shield reset pin is attached to
 
 // Define the pins used by the relay
-const int relay[2][4] = {
+const uint8_t relay[2][4] = {
   {A15, A14, A13, A12},
   {21, 20, 19, 18}
 };
@@ -48,21 +48,43 @@ const int relay[2][4] = {
 #define NO 0  // Normaly open = initially off
 #define NC 1  // Normaly closed = initially on
 
-int relayState[2][4] = {
-  {NC, NC, NC, NC},
-  {NC, NC, NC, NC}
+const uint8_t relayInit[2][4] = {
+  {NC, NC, NC, NO},
+  {NC, NC, NC, NO}
 };
+
+// Holds the relay state during runtime
+uint8_t relayState[2][4];
 
 
 // Client variables 
 String readString;
 String htmlString;
 
+void relayOff(uint8_t i, uint8_t j) {
+  if(NO == relayInit[i][j]) {
+    digitalWrite(relay[i][j], LOW);
+  } else { // NC
+    digitalWrite(relay[i][j], HIGH);
+  }
+  relayState[i][j] = 0;
+}
+
+void relayOn(uint8_t i, uint8_t j) {
+  if(NO == relayInit[i][j]) {
+    digitalWrite(relay[i][j], HIGH);
+  } else { // NC
+    digitalWrite(relay[i][j], LOW);
+  }
+  relayState[i][j] = 1;
+}
+
 void setup() {
   // make the LED pins outputs
   for(uint8_t i=0;i<2;i++){
     for(uint8_t j=0;j<4;j++){
       pinMode(relay[i][j], OUTPUT);
+      relayState[i][j] = relayInit[i][j];
     }
   }
 
@@ -145,7 +167,11 @@ void dashboardPage(EthernetClient &Client) {
       htmlString = F("onmousedown=\"location.href='/relay");
       htmlString += i;
       htmlString += j;
-      htmlString += F("?off'\">");
+      if(1 == relayState[i][j]) {
+        htmlString += F("?off'\">");
+      } else {
+        htmlString += F("?on'\">");
+      }
       Client.println(htmlString);
       Client.println(F("<input type=button class=\"bt tg\" value=TOGGLE "));
       htmlString = F("onmousedown=\"location.href='/relay");
@@ -188,64 +214,35 @@ void loop() {
           break;
         }
         if (c == '\n') {
-          if(readString.indexOf("GET /relay1off") > 0){
-            digitalWrite(relay[1][0], LOW);
-            relayState[1][0] = 0;
-          }
-          if(readString.indexOf("GET /relay1on") > 0){
-            digitalWrite(relay[1][0], HIGH);
-            relayState[1][0] = 1;
+          // Check if we have a valid request
+          //example: GET /relay02?off'
+          for(uint8_t i=0;i<2;i++){
+            for(uint8_t j=0;j<4;j++){
+              htmlString = F("GET /relay");
+              htmlString += i;
+              htmlString += j;
+              // TODO distinguish between NC and NO wiring
+              if(readString.indexOf(htmlString + "?off") > 0){
+                relayOff(i,j);
+              }
+              if(readString.indexOf(htmlString + "?on") > 0){
+                relayOn(i,j);
+              }
+              if(readString.indexOf(htmlString + "?toggle") > 0){
+                // TODO proper toggle with timer
+                // what to do, if relay was off?
+                relayOff(i,j);
+                delay(100);
+                relayOn(i,j);
+              }
+            }
           }
 
-          if(readString.indexOf('2') >0)//checks for 2
-          {
-            digitalWrite(relay[1][1], HIGH);    // set pin 5 high
-            Serial.println("Led 5 On");
-          }
-          if(readString.indexOf('3') >0)//checks for 3
-          {
-            digitalWrite(relay[1][1], LOW);    // set pin 5 low
-            Serial.println("Led 5 Off");
-          }
-          
-          if(readString.indexOf('4') >0)//checks for 4
-          {
-            digitalWrite(relay[1][2], HIGH);    // set pin 6 high
-            Serial.println("Led 6 On");
-          }
-          if(readString.indexOf('5') >0)//checks for 5
-          {
-            digitalWrite(relay[1][2], LOW);    // set pin 6 low
-            Serial.println("Led 6 Off");
-          }
-          
-           if(readString.indexOf('6') >0)//checks for 6
-          {
-            digitalWrite(relay[0][0], HIGH);    // set pin 7 high
-            Serial.println("Led 7 On");
-          }
-          if(readString.indexOf('7') >0)//checks for 7
-          {
-            digitalWrite(relay[0][0], LOW);    // set pin 7 low
-            Serial.println("Led 7 Off");
-          }     
-          
-            if(readString.indexOf('8') >0)//checks for 8
-          {
-            digitalWrite(relay[0][1], HIGH);    // set pin 8 high
-            Serial.println("Led 8 On");
-          }
-          if(readString.indexOf('9') >0)//checks for 9
-          {
-            digitalWrite(relay[0][1], LOW);    // set pin 8 low
-            Serial.println("Led 8 Off");
-          }  
-          
           // you're starting a new line
           currentLineIsBlank = true;
-          
+
           //clearing string for next read
-          readString="";          
+          readString="";
         }
         else if (c != '\r') {
           // you've gotten a character on the current line
