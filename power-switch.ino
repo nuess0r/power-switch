@@ -120,13 +120,10 @@ void relayOn(uint8_t i, uint8_t j) {
 bool relayToggle(uint8_t relay) {
   uint8_t i, j;
 
-  j = relay % 10;
-  i = 0;
-  if(relay >= 10) {
-    i = 1;
-  }
+  j = relay & 0x07; // First 3 bit
+  i = (relay & 0x10) >> 4; // bit 4
 
-  if(1 == relayState[i][j]) {
+  if(0 == (relay & 0x20)) {  // bit 5
     relayOff(i, j);
   } else {
     relayOn(i, j);
@@ -286,10 +283,11 @@ void loop() {
               if(readString.indexOf(htmlString + "?toggle") > 0){
                 if(1 == relayState[i][j]) {
                   relayOff(i, j);
+                  timer.in(toggleDelay, relayToggle, (1 << 5) + (i << 4) + j);
                 } else {
                   relayOn(i, j);
+                  timer.in(toggleDelay, relayToggle, (i << 4) + j);
                 }
-                timer.in(toggleDelay, relayToggle, i*10 + j);
               }
             }
           }
