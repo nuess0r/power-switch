@@ -7,22 +7,23 @@
   - 
 
   CONNECTION for Arduino Mega:
-    Pins D21        Relais left 0
-    Pins D20        Relais left 1
-    Pins D19        Relais left 2
-    Pins D18        Relais left 3
-    Pins A15        Relais right 0
-    Pins A14        Relais right 1
-    Pins A13        Relais right 2
-    Pins A12        Relais right 3
+    Pins D21        Relay left 0
+    Pins D20        Relay left 1
+    Pins D19        Relay left 2
+    Pins D18        Relay left 3
+    Pins A15        Relay right 0
+    Pins A14        Relay right 1
+    Pins A13        Relay right 2
+    Pins A12        Relay right 3
 
 */
-#define VERSION "2025-03-10"
+#define VERSION "2025-03-15"
 
 // Required libs
 #include <stdint.h> // uint8_t type variables
 #include <SPI.h>
 #include <Ethernet.h>
+#include <arduino-timer.h>  // Timer library for delaying function calls
 
 // Included libs
 #include "settings.h"
@@ -49,10 +50,15 @@ byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
 
+
+//---------------------------------------------------------------------------
+// Toggle delay in milliseconds
+const unsigned long toggleDelay = 20000UL;
+
+//---------------------------------------------------------------------------
+// Output description text
 String relayText(uint8_t i, uint8_t j) {
-  //---------------------------------------------------------------------------
-  // Output descriptions
-  //   20 characters per output, fill the remaining with space
+  // 20 characters per output, fill the remaining with space
   String outputText =
   //|      String 1     |      String 2     |      String 3     |      String 4     |      String 5     |      String 6     |      String 7     |      String 8     |
   F("Text 1              Text 2              Text 3              Text 4              Text 5              Text 6              Text 7              Text 8              ");
@@ -84,13 +90,14 @@ const uint8_t ethResetPin = 8;
 //---------------------------------------------------------------------------
 // Code
 
-// Holds the relay state during runtime
-uint8_t relayState[2][4];
+Timer<8, millis, uint8_t> timer;
 
-
-// Client variables 
+// Ethernet client variables
 String readString;
 String htmlString;
+
+// Holds the relay state during runtime
+uint8_t relayState[2][4];
 
 void relayOff(uint8_t i, uint8_t j) {
   if(NO == relayInit[i][j]) {
@@ -108,6 +115,23 @@ void relayOn(uint8_t i, uint8_t j) {
     digitalWrite(relay[i][j], LOW);
   }
   relayState[i][j] = 1;
+}
+
+bool relayToggle(uint8_t relay) {
+  uint8_t i, j;
+
+  j = relay % 10;
+  i = 0;
+  if(relay >= 10) {
+    i = 1;
+  }
+
+  if(1 == relayState[i][j]) {
+    relayOff(i, j);
+  } else {
+    relayOn(i, j);
+  }
+  return true; // to repeat the action - false to stop
 }
 
 void setup() {
@@ -156,6 +180,7 @@ void dashboardPage(EthernetClient &Client) {
   // HTML header
   Client.println(F("<!DOCTYPE HTML><html><head>"));
   Client.println(F("<meta name='apple-mobile-web-app-capable' content='yes' /> <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent' /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"));
+  Client.println(F("<meta http-equiv=\"refresh\" content=\"10;url=/\" />"));
   Client.println(F("<title>Ethernet Power Switch</title>"));
   // CSS styles
   Client.println(F("<style>html, body {height: 100%; font-family: -apple-system, system-ui, system-ui, \"Segoe UI\", Roboto, \"Helvetica Neue\", \"Fira Sans\", Ubuntu, Oxygen, \"Oxygen Sans\", Cantarell, \"Droid Sans\", \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Lucida Grande\", Helvetica, Arial, sans-serif; font-size: 14px;}"));
@@ -215,6 +240,8 @@ void dashboardPage(EthernetClient &Client) {
 }
 
 void loop() {
+  timer.tick();
+
   while(Serial.available()) {  // see if there are someone is trying to edit settings via serial port
     processSerial(Serial.read());
   }
@@ -250,7 +277,6 @@ void loop() {
               htmlString = F("GET /relay");
               htmlString += i;
               htmlString += j;
-              // TODO distinguish between NC and NO wiring
               if(readString.indexOf(htmlString + "?off") > 0){
                 relayOff(i,j);
               }
@@ -258,11 +284,12 @@ void loop() {
                 relayOn(i,j);
               }
               if(readString.indexOf(htmlString + "?toggle") > 0){
-                // TODO proper toggle with timer
-                // what to do, if relay was off?
-                relayOff(i,j);
-                delay(100);
-                relayOn(i,j);
+                if(1 == relayState[i][j]) {
+                  relayOff(i, j);
+                } else {
+                  relayOn(i, j);
+                }
+                timer.in(toggleDelay, relayToggle, i*10 + j);
               }
             }
           }
