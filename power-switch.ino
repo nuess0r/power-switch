@@ -27,21 +27,46 @@
 // Included libs
 #include "settings.h"
 
-// Initialize the Ethernet server library
-// with the IP address and port you want to use
-// (port 80 is default for HTTP):
+//---------------------------------------------------------------------------
+// Network configuration
+
+//the IP address is dependent on your network
+IPAddress ip(192, 168, 36, 77);
+
+// the router's gateway address:
+IPAddress gateway(192, 168, 36, 1);
+
+// the subnet:
+IPAddress subnet(255, 255, 255, 0);
+
+// the dns server ip
+IPAddress dnServer(192, 168, 36, 1);
+
+// Port you want to use (port 80 is default for HTTP):
 EthernetServer Server(80);
 
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
 
-const uint8_t ethResetPin = 8;  // pin the Ethernet shield reset pin is attached to
+String relayText(uint8_t i, uint8_t j) {
+  //---------------------------------------------------------------------------
+  // Output descriptions
+  //   20 characters per output, fill the remaining with space
+  String outputText =
+  //|      String 1     |      String 2     |      String 3     |      String 4     |      String 5     |      String 6     |      String 7     |      String 8     |
+  F("Text 1              Text 2              Text 3              Text 4              Text 5              Text 6              Text 7              Text 8              ");
+
+  return outputText.substring((i+1)*j*20, (i+1)*j*20+19);
+}
+
+//---------------------------------------------------------------------------
+// Pin configuration
 
 // Define the pins used by the relay
 const uint8_t relay[2][4] = {
-  {A15, A14, A13, A12},
-  {21, 20, 19, 18}
+  {21, 20, 19, 18},
+  {A15, A14, A13, A12}
 };
 
 // State of the Relais after power-on
@@ -52,6 +77,12 @@ const uint8_t relayInit[2][4] = {
   {NC, NC, NC, NO},
   {NC, NC, NC, NO}
 };
+
+// Pin the Ethernet shield reset pin is attached to
+const uint8_t ethResetPin = 8;
+
+//---------------------------------------------------------------------------
+// Code
 
 // Holds the relay state during runtime
 uint8_t relayState[2][4];
@@ -112,8 +143,7 @@ void setup() {
   // start the Ethernet connection and the server:
   //server(user_settings.server_port);
   //Ethernet.begin(user_settings.server_mac, user_settings.server_ip);
-  IPAddress ip(192, 168, 36, 77);
-  Ethernet.begin(mac, ip);
+  Ethernet.begin(mac, ip, dnServer, gateway, subnet);
   Server.begin();
   Serial.print("Server is at ");
   Serial.println(Ethernet.localIP());
@@ -149,9 +179,8 @@ void dashboardPage(EthernetClient &Client) {
       Client.println(F(""));
       htmlString = F("<h3>Relay ");
       htmlString += j + 1;
-      htmlString += " (";
-      htmlString += "Text";
-      htmlString += ")";
+      htmlString += " - ";
+      htmlString += relayText(i, j);
       Client.println(htmlString);
       Client.println(F("</h3><span class=st>"));
       if(1 == relayState[i][j]) {
